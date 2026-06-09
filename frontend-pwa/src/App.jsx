@@ -5,18 +5,24 @@ import AudioIntake from './components/AudioIntake'
 import GlassCard from './components/GlassCard'
 import TriageCard from './components/TriageCard'
 import AudioPlayer from './components/AudioPlayer'
-import { jsPDF } from 'jspdf'
 
 export default function App(){
   const [triage, setTriage] = useState(null)
   const [vitals, setVitals] = useState({})
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const generatePDF = async (lang='bn') => {
-    const doc = new jsPDF()
-    doc.setFontSize(14)
-    doc.text('রিলেটেড স্বাস্থ্য সারসংক্ষেপ', 10, 20)
-    doc.text(JSON.stringify({vitals, triage}, null, 2), 10, 40)
-    doc.save('summary.pdf')
+    try {
+      setPdfLoading(true)
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF()
+      doc.setFontSize(14)
+      doc.text('রিলেটেড স্বাস্থ্য সারসংক্ষেপ', 10, 20)
+      doc.text(JSON.stringify({vitals, triage}, null, 2), 10, 40)
+      doc.save('summary.pdf')
+    } finally {
+      setPdfLoading(false)
+    }
   }
 
   return (
@@ -45,7 +51,9 @@ export default function App(){
           <div className="flex-1">
             <TriageCard triage={triage} />
           </div>
-          <button onClick={()=>generatePDF('bn')} className="btn-glass w-full lg:w-auto px-6 py-3 font-medium">Generate Bengali PDF</button>
+          <button onClick={()=>generatePDF('bn')} disabled={pdfLoading} className="btn-glass w-full lg:w-auto px-6 py-3 font-medium">
+            {pdfLoading ? 'Preparing PDF...' : 'Generate Bengali PDF'}
+          </button>
         </div>
         <div className="mt-6 sm:mt-8">
           <AudioPlayer src="/api/tts/stream" />

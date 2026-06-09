@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Responsive Base Styles */
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  html { font-size: 14px; }
+}
+
+body {
+  @apply bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white/85;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Glassmorphism utilities */
+.glass-card {
+  @apply backdrop-blur-md bg-white/10 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.2)];
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  @apply bg-white/15 border-white/30;
+}
+
+/* Responsive Typography */
+@layer components {
+  .text-h1 { @apply text-2xl sm:text-3xl lg:text-4xl font-bold; }
+  .text-h2 { @apply text-xl sm:text-2xl lg:text-3xl font-semibold; }
+  .text-h3 { @apply text-lg sm:text-xl font-semibold; }
+  .text-body { @apply text-sm sm:text-base leading-relaxed; }
+  
+  .btn-glass {
+    @apply px-4 py-2 rounded-2xl bg-cyan-500/80 hover:bg-cyan-400 text-white/95 transition duration-200 active:scale-95;
+  }
+}
+
+/* Safe area insets for iPhone notch/Dynamic Island */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}

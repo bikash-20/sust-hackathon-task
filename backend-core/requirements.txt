@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+openai
+google-cloud-vision
+google-cloud-translate
+langdetect
+jinja2
+pydantic
+numpy
+python-multipart
+pytest
+pytest-asyncio

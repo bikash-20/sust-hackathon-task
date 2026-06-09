@@ -16,6 +16,8 @@ const formatTriage = (triage) => {
   return [`Severity: ${triage.triage_severity || 'Unknown'}`, `Reasoning: ${triage.clinical_reasoning || 'N/A'}`].join('\n')
 }
 
+const DEFAULT_MODEL = 'cf-llama'
+
 const defaultWelcome = {
   role: 'assistant',
   content: 'Hi, I am NEXORA, your medical AI expert. How may I help you today?\n\nহাই, আমি নেক্সোরা, আপনার মেডিকেল এআই এক্সপার্ট। আজ আপনাকে কীভাবে সাহায্য করতে পারি?'
@@ -42,13 +44,26 @@ export default function NexoraChatbot({ vitals, triage }) {
         body: JSON.stringify({
           messages: [userMessage],
           vitals,
-          triage
+          triage,
+          model: DEFAULT_MODEL
         })
       })
-      const payload = await response.json()
-      if (!response.ok) {
-        throw new Error(payload.error || 'NEXORA chat failed')
+      const text = await response.text()
+      let payload = null
+      try {
+        payload = text ? JSON.parse(text) : null
+      } catch (parseErr) {
+        payload = null
       }
+
+      if (!response.ok) {
+        const errorMessage = payload?.error || text || 'NEXORA chat failed'
+        throw new Error(errorMessage)
+      }
+      if (!payload || typeof payload !== 'object') {
+        throw new Error(text || 'Received unexpected chatbot response')
+      }
+
       const assistantMessage = {
         role: 'assistant',
         content: payload.assistant || 'I could not generate a response. Please try again.'

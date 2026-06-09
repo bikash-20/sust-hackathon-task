@@ -5,10 +5,11 @@ import httpx
 from typing import Optional
 
 EDGE_ROUTER_URL = os.getenv('EDGE_ROUTER_URL')
+OPENAI_KEY = os.getenv('OPENAI_API_KEY')
 
 logger = logging.getLogger('llm_client')
 
-async def call_edge_router(prompt: str | None = None, messages: list | None = None, temperature: float = 0.2, api_key: Optional[str]=None, max_tokens: int = 1000, response_mode: str = 'json'):
+async def call_edge_router(prompt: str | None = None, messages: list | None = None, temperature: float = 0.2, api_key: Optional[str]=None, max_tokens: int = 1000, response_mode: str = 'json', model: str | None = None):
     if not EDGE_ROUTER_URL:
         raise RuntimeError('EDGE_ROUTER_URL not configured')
     if not messages and prompt is None:
@@ -18,7 +19,7 @@ async def call_edge_router(prompt: str | None = None, messages: list | None = No
         messages = [{'role':'system','content':'You are a strict JSON-outputting assistant.'}, {'role':'user','content': prompt or ''}]
 
     payload = {
-        'model': 'gpt-4o-mini',
+        'model': model or 'gpt-4o-mini',
         'messages': messages,
         'temperature': temperature,
         'max_tokens': max_tokens
@@ -26,8 +27,10 @@ async def call_edge_router(prompt: str | None = None, messages: list | None = No
     headers = {'Content-Type':'application/json'}
     if api_key:
         headers['x-api-key'] = api_key
+    elif OPENAI_KEY:
+        headers['x-api-key'] = OPENAI_KEY
 
-    logger.debug('Calling edge router %s', EDGE_ROUTER_URL)
+    logger.debug('Calling edge router %s with model %s', EDGE_ROUTER_URL, payload['model'])
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(EDGE_ROUTER_URL, json=payload, headers=headers)
         text = resp.text

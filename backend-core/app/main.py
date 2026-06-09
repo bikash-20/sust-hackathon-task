@@ -164,10 +164,11 @@ def create_app():
       'Always stay concise, factual, and supportive.'
       f"\n\n{render_context()}"
     )
+    model = data.get('model', 'cf-llama')
     try:
-      text = await llm_client.call_edge_router(messages=[{'role':'system','content': system_prompt}, *messages], response_mode='raw', temperature=0.6, max_tokens=900, api_key=data.get('api_key'))
+      text = await llm_client.call_edge_router(messages=[{'role':'system','content': system_prompt}, *messages], response_mode='raw', temperature=0.6, max_tokens=900, api_key=data.get('api_key'), model=model)
       language = 'bn' if any('উ' in c or 'ক' in c or 'া' in c for c in text) else 'en'
-      return {'assistant': text, 'language': language}
+      return {'assistant': text, 'language': language, 'model': model}
     except Exception as e:
       logger.exception('Chat gateway failed')
       return JSONResponse({'error': 'NEXORA chat failed', 'detail': str(e)}, status_code=500)

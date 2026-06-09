@@ -4,7 +4,7 @@
   "scripts": {
     "build:frontend": "npm install --prefix frontend-pwa && npm run build --prefix frontend-pwa"
   },
-  "dependencies": {
-    "wrangler": "^4.98.0"
+  "devDependencies": {
+    "wrangler": "^4.99.0"
   }
 }

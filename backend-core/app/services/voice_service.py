@@ -17,7 +17,6 @@ async def stream_worker_tts(text: str, model: str | None = None):
   payload = {'text': text}
   if model:
     payload['model'] = model
-
   async with httpx.AsyncClient(timeout=None) as client:
     async with client.stream('POST', url, headers={'Content-Type': 'application/json'}, json=payload) as resp:
       if resp.status_code >= 400:
@@ -29,19 +28,9 @@ async def stream_worker_tts(text: str, model: str | None = None):
 async def stream_openai_tts(text: str, model: str = OPENAI_TTS_MODEL):
   if not OPENAI_KEY:
     raise RuntimeError('OPENAI_API_KEY not configured for OpenAI TTS')
-
   url = 'https://api.openai.com/v1/audio/speech'
-  headers = {
-    'Authorization': f'Bearer {OPENAI_KEY}',
-    'Content-Type': 'application/json',
-    'Accept': 'audio/mpeg'
-  }
-  body = {
-    'model': model,
-    'voice': 'alloy',
-    'input': text
-  }
-
+  headers = {'Authorization': f'Bearer {OPENAI_KEY}', 'Content-Type': 'application/json', 'Accept': 'audio/mpeg'}
+  body = {'model': model, 'voice': 'alloy', 'input': text}
   async with httpx.AsyncClient(timeout=None) as client:
     async with client.stream('POST', url, headers=headers, json=body) as resp:
       if resp.status_code >= 400:
@@ -50,8 +39,8 @@ async def stream_openai_tts(text: str, model: str = OPENAI_TTS_MODEL):
       async for chunk in resp.aiter_bytes():
         yield chunk
 
-  async def stream_tts(text: str, voice_id: str = os.getenv('ELEVENLABS_VOICE_ID', '21m00Tcm4TlvDq8ikWAM')):
-   last_exc = None
+async def stream_elevenlabs_tts(text: str, voice_id: str = '21m00Tcm4TlvDq8ikWAM'):
+  last_exc = None
   for key in ELEVENLABS_KEYS:
     if not key:
       continue
@@ -74,7 +63,7 @@ async def stream_openai_tts(text: str, model: str = OPENAI_TTS_MODEL):
       continue
   raise last_exc or Exception('No ElevenLabs keys available')
 
-async def stream_tts(text: str, voice_id: str = 'eleven_monolingual_v1'):
+async def stream_tts(text: str, voice_id: str = os.getenv('ELEVENLABS_VOICE_ID', '21m00Tcm4TlvDq8ikWAM')):
   last_exc = None
 
   if USE_CF_WORKER_TTS and EDGE_ROUTER_URL:
@@ -85,17 +74,17 @@ async def stream_tts(text: str, voice_id: str = 'eleven_monolingual_v1'):
     except Exception as e:
       last_exc = e
 
-  if OPENAI_KEY:
+  if ELEVENLABS_KEYS:
     try:
-      async for chunk in stream_openai_tts(text):
+      async for chunk in stream_elevenlabs_tts(text, voice_id):
         yield chunk
       return
     except Exception as e:
       last_exc = e
 
-  if ELEVENLABS_KEYS:
+  if OPENAI_KEY:
     try:
-      async for chunk in stream_elevenlabs_tts(text, voice_id):
+      async for chunk in stream_openai_tts(text):
         yield chunk
       return
     except Exception as e:

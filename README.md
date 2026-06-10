@@ -1,4 +1,10 @@
-# Rural Health Triage — CSE Carnival 2026 AI & API Hackathon
+# Rural Health Triage — bKash presents SUST CSE
+
+CARNIVAL 2026
+
+Codex Community HACKATHON
+
+In association with Codex and Poridhi
 
 ## 🏥 Project Overview
 

@@ -50,7 +50,7 @@ export default function App(){
             <div className="space-y-4">
               <AudioIntake />
               <TriageCard triage={triage} />
-              <AudioPlayer src="/api/tts/stream" />
+              <AudioPlayer src="/api/tts/stream" summary={triage ? `Triage status: ${triage.triage_severity}. ${triage.clinical_reasoning || ''}` : 'No triage data available'} />
             </div>
           </div>
           <div className="mt-6 sm:mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

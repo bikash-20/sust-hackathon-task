@@ -135,8 +135,8 @@ def create_app():
   async def chat_endpoint(payload: Request):
     data = await payload.json()
     messages = data.get('messages')
-    vitals_context = data.get('vitals', {})
-    triage_context = data.get('triage', {})
+    vitals_context = data.get('vitals') or {}
+    triage_context = data.get('triage') or {}
 
     if not messages or not isinstance(messages, list):
       return JSONResponse({'error': 'messages list is required'}, status_code=400)

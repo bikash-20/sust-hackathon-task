@@ -18,13 +18,12 @@ async def call_edge_router(prompt: str | None = None, messages: list | None = No
     if messages is None:
         messages = [{'role':'system','content':'You are a strict JSON-outputting assistant.'}, {'role':'user','content': prompt or ''}]
 
-   
-     payload = {
-    'model': model if model else 'cf-llama',
-    'messages': messages,
-    'temperature': temperature,
-    'max_tokens': max_tokens
- }
+    payload = {
+        'model': model if model else 'cf-llama',
+        'messages': messages,
+        'temperature': temperature,
+        'max_tokens': max_tokens
+    }
     headers = {'Content-Type':'application/json'}
     if api_key:
         headers['x-api-key'] = api_key
@@ -39,22 +38,20 @@ async def call_edge_router(prompt: str | None = None, messages: list | None = No
             logger.error('Edge router error %s: %s', resp.status_code, text)
             raise RuntimeError(f'Edge router error {resp.status_code}: {text}')
 
-    if response_mode == 'raw':
-        return text
+        if response_mode == 'raw':
+            return text
 
-    # Try to extract JSON from response text
-    try:
-        return json.loads(text)
-    except Exception:
-        # attempt to find JSON substring
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1 and end > start:
-            snippet = text[start:end+1]
-            try:
-                return json.loads(snippet)
-            except Exception:
-                logger.exception('Failed to parse JSON from snippet')
-                raise RuntimeError('Failed to parse JSON from model response')
-        logger.error('Model response not JSON: %s', text[:200])
-        raise RuntimeError('Model response not JSON')
+        try:
+            return json.loads(text)
+        except Exception:
+            start = text.find('{')
+            end = text.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                snippet = text[start:end+1]
+                try:
+                    return json.loads(snippet)
+                except Exception:
+                    logger.exception('Failed to parse JSON from snippet')
+                    raise RuntimeError('Failed to parse JSON from model response')
+            logger.error('Model response not JSON: %s', text[:200])
+            raise RuntimeError('Model response not JSON')

@@ -30,7 +30,7 @@ export default function VitalsForm({ onChange, onAnomaly }) {
   const [ocrResult, setOcrResult] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const [triageLoading, setTriageLoading] = useState(false) // ✅ NEW
+  const [triageLoading, setTriageLoading] = useState(false)
   const fileInput = useRef(null)
 
   const updateField = (name, value) => {
@@ -51,7 +51,6 @@ export default function VitalsForm({ onChange, onAnomaly }) {
     })
   }
 
-  // ✅ FIXED: Now calls /api/triage after /api/vitals to get proper TriageResponse
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formPayload = { ...values }
@@ -67,18 +66,23 @@ export default function VitalsForm({ onChange, onAnomaly }) {
       const vitalsJson = await vitalsRes.json()
       onChange(formPayload)
 
-      // Step 2: generate full triage from vitals
+      // Step 2: build alert summary so AI understands severity
+      const alertSummary = vitalsJson.alerts?.length
+        ? `ALERTS: ${vitalsJson.alerts.join(', ')}. Severity level: ${vitalsJson.level}.`
+        : 'No critical alerts.'
+
+      // Step 3: call triage with full context
       const triageRes = await fetch('/api/triage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          normalized_text: `Patient vitals: BP ${values.bp}, HR ${values.hr}, Temp ${values.temp}F, SpO2 ${values.spo2}%, Glucose ${values.glucose}mg/dL`,
+          normalized_text: `Patient vitals: BP ${values.bp}, HR ${values.hr}, Temp ${values.temp}F, SpO2 ${values.spo2}%, Glucose ${values.glucose}mg/dL. ${alertSummary}`,
           vitals_anomaly: vitalsJson,
           history: { medications: [], diagnoses: [], labs: [] }
         })
       })
       const triageData = await triageRes.json()
-      onAnomaly(triageData) // ✅ Now has triage_severity, clinical_reasoning etc.
+      onAnomaly(triageData)
     } catch (err) {
       console.error('Vitals/triage call failed:', err)
     } finally {
@@ -86,7 +90,6 @@ export default function VitalsForm({ onChange, onAnomaly }) {
     }
   }
 
-  // ✅ FIXED: Now calls /api/triage so triage_severity is properly set
   const simulateCritical = async () => {
     const simulated = { bp: '170/110', hr: '135', temp: '104.0', spo2: '88', glucose: '230' }
     setValues(simulated)
@@ -98,13 +101,13 @@ export default function VitalsForm({ onChange, onAnomaly }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          normalized_text: 'Critical patient: BP 170/110, HR 135, Temp 104F, SpO2 88%, Glucose 230mg/dL',
-          vitals_anomaly: { anomaly: true, reason: 'Simulated critical case' },
+          normalized_text: 'CRITICAL PATIENT. ALERTS: Low SpO2 at 88%, High fever 104F, Abnormal HR 135, High BP 170/110, High glucose 230. Severity level: red.',
+          vitals_anomaly: { level: 'red', alerts: ['Low SpO2', 'High fever', 'Abnormal heart rate', 'Glucose outlier'] },
           history: { medications: [], diagnoses: [], labs: [] }
         })
       })
       const triageData = await triageRes.json()
-      onAnomaly(triageData) // ✅ triage_severity will now be Red
+      onAnomaly(triageData)
     } catch (err) {
       console.error('Simulate triage failed:', err)
     } finally {

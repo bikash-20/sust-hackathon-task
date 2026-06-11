@@ -18,12 +18,13 @@ async def call_edge_router(prompt: str | None = None, messages: list | None = No
     if messages is None:
         messages = [{'role':'system','content':'You are a strict JSON-outputting assistant.'}, {'role':'user','content': prompt or ''}]
 
-    payload = {
-        'model': model or 'gpt-4o-mini',
-        'messages': messages,
-        'temperature': temperature,
-        'max_tokens': max_tokens
-    }
+   
+     payload = {
+    'model': model if model else 'cf-llama',
+    'messages': messages,
+    'temperature': temperature,
+    'max_tokens': max_tokens
+ }
     headers = {'Content-Type':'application/json'}
     if api_key:
         headers['x-api-key'] = api_key

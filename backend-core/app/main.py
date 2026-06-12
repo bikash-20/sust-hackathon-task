@@ -27,13 +27,11 @@ def create_app():
 
   @app.post('/api/audio/intake')
   async def audio_intake(file: UploadFile = File(...)):
-    # save temp
     with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp:
       content = await file.read()
       tmp.write(content)
       tmp_path = tmp.name
 
-    # Send to OpenAI Whisper
     openai.api_key = OPENAI_KEY
     try:
       with open(tmp_path, 'rb') as f:
@@ -42,14 +40,12 @@ def create_app():
     except Exception as e:
       return JSONResponse({'error': str(e)}, status_code=500)
 
-    # detect language
     lang = 'en'
     try:
       lang = detect(text)
     except:
       lang = 'en'
 
-    # If Bengali, translate using Google Translate
     if lang and lang.startswith('bn'):
       from google.cloud import translate_v2 as translate
       client = translate.Client()
@@ -106,7 +102,6 @@ def create_app():
     if not normalized or vitals_anomaly is None or history is None:
       return JSONResponse({'error': 'normalized_text, vitals_anomaly, and history required'}, status_code=400)
 
-    # Build clinical prompt
     prompt = (
       "You are a clinical decision support assistant for rural community health workers in Bangladesh. "
       "Given the patient's symptomatic description, the structured medication/history, and vital anomaly findings, produce STRICT JSON matching this schema: "
@@ -124,6 +119,8 @@ def create_app():
     except Exception as e:
       logger.exception('Triage LLM call failed')
       return JSONResponse({'error': 'Triage generation failed', 'detail': str(e)}, status_code=500)
+
+  # ✅ FIXED indentation
   @app.post('/api/dose')
   async def dose_endpoint(payload: Request):
     data = await payload.json()
@@ -132,35 +129,37 @@ def create_app():
     weight = data.get('weight')
 
     if not medication or age is None or weight is None:
-        return JSONResponse({'error': 'medication, age, and weight are required'}, status_code=400)
+      return JSONResponse({'error': 'medication, age, and weight are required'}, status_code=400)
 
     prompt = (
-        "You are a clinical pharmacist AI for rural health workers in Bangladesh. "
-        "Calculate the safe medication dose based on patient age and weight. "
-        "Return ONLY valid JSON with these exact fields:\n"
-        "{\n"
-        '  "summary_en": "Full dose instructions in English",\n'
-        '  "summary_bn": "Full dose instructions in Bengali",\n'
-        '  "dose_per_kg": "e.g. 15mg/kg",\n'
-        '  "total_dose": "e.g. 300mg",\n'
-        '  "frequency": "e.g. Every 6 hours",\n'
-        '  "route": "e.g. Oral",\n'
-        '  "is_dangerous": true or false,\n'
-        '  "warning_en": "Warning in English if dangerous, else null",\n'
-        '  "warning_bn": "Warning in Bengali if dangerous, else null"\n'
-        "}\n\n"
-        f"Medication: {medication}\n"
-        f"Patient age: {age} years\n"
-        f"Patient weight: {weight} kg\n\n"
-        "Important: If the dose is unsafe for this age/weight, set is_dangerous to true and explain why in both languages. Return only JSON."
+      "You are a clinical pharmacist AI for rural health workers in Bangladesh. "
+      "Calculate the safe medication dose based on patient age and weight. "
+      "Return ONLY valid JSON with these exact fields:\n"
+      "{\n"
+      '  "summary_en": "Full dose instructions in English",\n'
+      '  "summary_bn": "Full dose instructions in Bengali using real Bengali Unicode characters like রোগী NOT escape sequences like \\u09xx",\n'
+      '  "dose_per_kg": "e.g. 15mg/kg",\n'
+      '  "total_dose": "e.g. 300mg",\n'
+      '  "frequency": "e.g. Every 6 hours",\n'
+      '  "route": "e.g. Oral",\n'
+      '  "is_dangerous": true or false,\n'
+      '  "warning_en": "Warning in English if dangerous, else null",\n'
+      '  "warning_bn": "Warning in Bengali using real Unicode characters if dangerous, else null"\n'
+      "}\n\n"
+      f"Medication: {medication}\n"
+      f"Patient age: {age} years\n"
+      f"Patient weight: {weight} kg\n\n"
+      "CRITICAL: Bengali text must use real Unicode Bengali characters (অ আ ক খ etc), "
+      "never escape sequences. Return only JSON, no extra text."
     )
 
     try:
-        parsed = await llm_client.call_edge_router(prompt, temperature=0.0, max_tokens=600)
-        return parsed
+      parsed = await llm_client.call_edge_router(prompt, temperature=0.0, max_tokens=600)
+      return parsed
     except Exception as e:
-        logger.exception('Dose calculation failed')
-        return JSONResponse({'error': 'Dose calculation failed', 'detail': str(e)}, status_code=500)
+      logger.exception('Dose calculation failed')
+      return JSONResponse({'error': 'Dose calculation failed', 'detail': str(e)}, status_code=500)
+
   @app.post('/api/vitals')
   async def vitals_endpoint(payload: Request):
     data = await payload.json()

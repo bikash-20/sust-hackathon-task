@@ -7,7 +7,6 @@ export default function DoseCalculator() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [audioLoading, setAudioLoading] = useState(false)
-  const audioRef = React.useRef(null)
 
   const calculate = async () => {
     if (!medication || !age || !weight) return
@@ -33,20 +32,34 @@ export default function DoseCalculator() {
     if (!result) return
     setAudioLoading(true)
     try {
-      const text = `${result.summary_en}. ${result.summary_bn}. ${result.warning_en || ''} ${result.warning_bn || ''}`
-      const url = `/api/tts/stream?q=${encodeURIComponent(text)}`
+      // ✅ Only use English for TTS since CF Worker can't speak Bengali
+      const parts = [
+        result.summary_en,
+        result.total_dose ? `Total dose: ${result.total_dose}` : '',
+        result.frequency ? `Frequency: ${result.frequency}` : '',
+        result.warning_en || ''
+      ].filter(Boolean).join('. ')
+
+      if (!parts.trim()) {
+        alert('No content to speak')
+        return
+      }
+
+      const url = `/api/tts/stream?q=${encodeURIComponent(parts)}`
       const response = await fetch(url)
-      if (!response.ok) throw new Error('TTS failed')
+      if (!response.ok) throw new Error(`TTS failed: ${response.status}`)
+
       const arrayBuffer = await response.arrayBuffer()
       const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(blob)
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl
-        audioRef.current.load()
-        await audioRef.current.play()
-      }
+
+      // ✅ Create fresh Audio element each time — avoids NotSupportedError
+      const audio = new Audio(audioUrl)
+      await audio.play()
+
     } catch (err) {
       console.error('TTS failed:', err)
+      alert('Audio failed: ' + err.message)
     } finally {
       setAudioLoading(false)
     }
@@ -54,8 +67,6 @@ export default function DoseCalculator() {
 
   return (
     <div className="glass-card p-4 sm:p-6 rounded-xl sm:rounded-2xl w-full space-y-4">
-      <audio ref={audioRef} preload="none" />
-
       {/* Header */}
       <div>
         <label className="text-xs uppercase tracking-wide text-white/70 block mb-1">
@@ -112,8 +123,10 @@ export default function DoseCalculator() {
 
       {/* Result */}
       {result && (
-        <div className={`rounded-2xl p-4 space-y-3 border ${result.is_dangerous ? 'border-red-400/50 bg-red-500/10' : 'border-green-400/30 bg-green-500/10'}`}>
-
+        <div className={`rounded-2xl p-4 space-y-3 border ${result.is_dangerous
+          ? 'border-red-400/50 bg-red-500/10'
+          : 'border-green-400/30 bg-green-500/10'}`}
+        >
           {/* Warning banner */}
           {result.is_dangerous && (
             <div className="flex items-start gap-2 bg-red-600/30 border border-red-400/40 rounded-xl p-3">
